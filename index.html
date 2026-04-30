@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barein Dashboard | Total Empresa</title>
+    <title>Barein Dashboard | Total con Filtros</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -15,7 +15,7 @@
         .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; gap: 15px; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
         .search-box { flex-grow: 1; min-width: 200px; }
         input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; transition: 0.2s; }
-        input:focus { border-color: var(--accent); }
+        input:focus, select:focus { border-color: var(--accent); }
         .tabs { display: flex; justify-content: center; gap: 25px; margin: 25px 0; border-bottom: 1px solid var(--border); }
         .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 20px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 13px; }
         .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -40,10 +40,25 @@
 <body>
 
 <div class="nav">
-    <div style="font-weight: 800; color: var(--accent); font-size: 1.1rem;">BAREIN<span style="color:white; font-weight:400">TOTAL</span></div>
+    <div style="font-weight: 800; color: var(--accent); font-size: 1.1rem;">BAREIN<span style="color:white; font-weight:400">DASHBOARD</span></div>
     <div style="width: 140px;"><select id="mesSelector"></select></div>
+    <!-- REINSTALADO EL FILTRO DE ACTIVIDAD -->
+    <div style="width: 180px;">
+        <select id="actividadSelector">
+            <option value="TODAS">Todas las Actividades</option>
+            <option value="1">1 - Mostrador</option>
+            <option value="5">5 - Empresa</option>
+            <option value="10">10 - Reventa</option>
+            <option value="15">15 - Seguros</option>
+            <option value="20">20 - Competición</option>
+            <option value="30">30 - Marketplace</option>
+            <option value="40">40 - Redes</option>
+            <option value="50">50 - Logística</option>
+            <option value="NADA">Sin Identificar</option>
+        </select>
+    </div>
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscá por rodado, marca o descripción...">
+        <input type="text" id="searchInput" placeholder="Buscá rodado, marca o descripción...">
     </div>
 </div>
 
@@ -60,7 +75,7 @@
             <div class="card"><span class="label">Servicios</span><div id="kpiServ" class="value">$ 0</div><div id="kpiIncid" class="sub-value">0% Incidencia</div></div>
             <div class="card"><span class="label">Ticket Promedio (Cubiertas)</span><div id="kpiProm" class="value">$ 0</div></div>
         </div>
-        <div class="section-header"><span>Top 10 Marcas (Market Share)</span><div class="line"></div></div>
+        <div class="section-header"><span>Top 10 Marcas</span><div class="line"></div></div>
         <div class="table-container">
             <table id="tablaMarcasHome">
                 <thead><tr><th>Marca</th><th class="num">Share %</th><th class="num">Total Facturado</th></tr></thead>
@@ -91,7 +106,7 @@
     const URL_PUB = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCmHe-75PjLOZxC8rj9ZiRx58SU0crBtp9FGokKFYUIN3FSONy7091EQPrVZWmHrkuXEuK-rg3uCx4/pub?output=csv';
     let rawData = [];
 
-    // LÓGICA DE INTERPRETACIÓN DE DINERO (REPLICADA DE TU DASH ANTERIOR)
+    // LÓGICA DE INTERPRETACIÓN DE DINERO (REPLICADA)
     function parseNum(v) {
         if (!v || v === "" || v === "-" || v === " ") return 0;
         let s = String(v).trim().replace(/[$\s]/g, '');
@@ -120,6 +135,7 @@
                 selMes.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
                 
                 selMes.addEventListener('change', update);
+                document.getElementById('actividadSelector').addEventListener('change', update);
                 document.getElementById('searchInput').addEventListener('input', update);
                 update();
             }
@@ -135,6 +151,7 @@
 
     function update() {
         const mesSel = document.getElementById('mesSelector').value;
+        const filtroAct = document.getElementById('actividadSelector').value;
         const search = document.getElementById('searchInput').value.toLowerCase().trim();
         const tokens = search.split(' ').filter(t => t !== '');
         
@@ -144,8 +161,16 @@
         rawData.forEach((row, index) => {
             if (index === 0 || row.length < 15) return;
 
+            // Filtro de Mes
             const mesRow = String(row[14] || "").trim();
             if (mesRow !== mesSel) return;
+
+            // Filtro de Actividad (Agregado de vuelta)
+            const actRow = String(row[8] || "").trim(); // Columna de Actividad
+            let matchAct = (filtroAct === "TODAS") || 
+                           (filtroAct === "NADA" && (actRow === "" || actRow === "0")) || 
+                           (actRow === filtroAct);
+            if (!matchAct) return;
 
             const marca = String(row[16] || "").toLowerCase();
             const desc = String(row[9] || "").toLowerCase();
@@ -155,11 +180,11 @@
             const matchSearch = tokens.every(t => fullText.includes(t));
 
             if (matchSearch) {
-                const imp = parseNum(row[6]); // Lógica ImporteML aplicada aquí
+                const imp = parseNum(row[6]); // ImporteML con lógica parseNum
                 const can = parseFloat(String(row[5]).replace(',', '.')) || 0;
                 const esServicio = String(row[10]).trim().toUpperCase() === "A_SERVICIO";
 
-                kpi.f += imp; // Suma total empresa
+                kpi.f += imp;
 
                 if (!esServicio && rodado !== "" && rodado !== "0") {
                     kpi.c += can;
@@ -186,7 +211,7 @@
         document.getElementById('kpiIncid').innerText = (kpi.f > 0 ? (kpi.s / kpi.f * 100).toFixed(1) : 0) + '% Incidencia';
         document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
 
-        // Render Tables
+        // Tablas
         const sortedM = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
         document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedM.slice(0, 10).map(([m, v]) => `
             <tr><td>${m}</td><td class="num">${kpi.f > 0 ? (v.f/kpi.f*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
