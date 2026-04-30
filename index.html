@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barein Dashboard - Full Rodados</title>
+    <title>Barein Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -47,10 +47,10 @@
 <body>
 
 <div class="nav">
-    <div style="font-weight: 800; color: var(--accent); font-size: 1.2rem;">BAREIN<span style="color:white; font-weight:400">DASH</span></div>
+    <div style="font-weight: 800; color: var(--accent); font-size: 1.2rem;">BAREIN<span style="color:white; font-weight:400">DASHBOARD</span></div>
     <div style="width: 140px;"><select id="mesSelector"></select></div>
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscá medida (175 70 13), marca o rodado...">
+        <input type="text" id="searchInput" placeholder="Buscá marca o producto...">
     </div>
 </div>
 
@@ -60,7 +60,6 @@
 </div>
 
 <div class="container">
-    <!-- SOLAPA 1 -->
     <div id="general" class="page active">
         <div class="grid-kpi">
             <div class="card"><span class="label">Facturación Total</span><div id="kpiFact" class="value">$ 0</div></div>
@@ -77,7 +76,6 @@
         </div>
     </div>
 
-    <!-- SOLAPA 2 -->
     <div id="detallado" class="page">
         <div class="section-header"><span>Ventas por Rodado</span><div class="line"></div></div>
         <div class="table-container">
@@ -86,7 +84,6 @@
                 <tbody></tbody>
             </table>
         </div>
-
         <div class="section-header"><span>Ranking Completo de Marcas</span><div class="line"></div></div>
         <div class="table-container">
             <table id="tablaMarcasFull">
@@ -98,7 +95,7 @@
 </div>
 
 <script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1gddLz0WmuvjDPicMY4O5uhQpe0tOL8wFmMtYzuIBi5g/export?format=csv';
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/TU_ID_AQUI/export?format=csv';
     let rawData = [];
 
     const fmt = (n) => '$ ' + Math.floor(n).toLocaleString('es-AR');
@@ -144,7 +141,6 @@
                 const fullText = `${marca} ${medida} ${rodado} ${desc}`;
                 const fullClean = fullText.replace(/[^a-z0-9]/g, '');
                 
-                // Buscador: match por tokens o match por texto plano (1757013)
                 const match = tokens.length === 0 || tokens.every(t => fullText.includes(t) || (t.replace(/[^a-z0-9]/g, '') !== '' && fullClean.includes(t.replace(/[^a-z0-9]/g, ''))));
 
                 if (match) {
@@ -167,14 +163,12 @@
             }
         });
 
-        // KPIs
         document.getElementById('kpiFact').innerText = fmt(kpi.f);
         document.getElementById('kpiCant').innerText = kpi.c.toLocaleString('es-AR') + ' u.';
         document.getElementById('kpiFactNeu').innerText = fmt(kpi.fn);
         document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
         document.getElementById('kpiServ').innerText = fmt(kpi.s);
 
-        // Tablas
         const sortedM = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
         document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedM.slice(0, 10).map(([m, v]) => `
             <tr><td>${m}</td><td class="num">${kpi.f > 0 ? ((v.f/kpi.f)*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
