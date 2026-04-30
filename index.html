@@ -13,10 +13,10 @@
         }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; overflow-x: hidden; }
         
-        .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; gap: 20px; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
-        .search-box { flex-grow: 1; min-width: 250px; }
-        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; }
-        input:focus { border-color: var(--accent); }
+        .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; gap: 15px; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+        .search-box { flex-grow: 1; min-width: 200px; }
+        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--accent); }
 
         .tabs { display: flex; justify-content: center; gap: 25px; margin: 25px 0; border-bottom: 1px solid var(--border); }
         .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 20px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 13px; }
@@ -47,8 +47,23 @@
 <body>
 
 <div class="nav">
-    <div style="font-weight: 800; color: var(--accent); font-size: 1.2rem;">BAREIN<span style="color:white; font-weight:400">DASHBOARD</span></div>
-    <div style="width: 140px;"><select id="mesSelector"></select></div>
+    <div style="font-weight: 800; color: var(--accent); font-size: 1.1rem;">BAREIN<span style="color:white; font-weight:400">DASHBOARD</span></div>
+    <div style="width: 130px;"><select id="mesSelector"></select></div>
+    <div style="width: 180px;">
+        <select id="actividadSelector">
+            <option value="TODAS">Todas las Actividades</option>
+            <option value="1">1 - Mostrador</option>
+            <option value="5">5 - Empresa</option>
+            <option value="10">10 - Reventa</option>
+            <option value="15">15 - Seguros</option>
+            <option value="20">20 - Competición</option>
+            <option value="30">30 - Marketplace</option>
+            <option value="40">40 - Redes</option>
+            <option value="50">50 - Logística</option>
+            <option value="NADA">Sin Identificar</option>
+            <option value="3">3 - N/A</option>
+        </select>
+    </div>
     <div class="search-box">
         <input type="text" id="searchInput" placeholder="Buscá marca o producto...">
     </div>
@@ -95,7 +110,6 @@
 </div>
 
 <script>
-    // URL YA CORREGIDA CON TU ID
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1gddLz0WmuvjDPicMY4O5uhQpe0tOL8wFmMtYzuIBi5g/export?format=csv';
     let rawData = [];
 
@@ -107,9 +121,11 @@
             complete: (results) => {
                 rawData = results.data;
                 const meses = [...new Set(rawData.map(r => String(r[14]).trim()))].filter(m => m && m.toLowerCase() !== 'mes');
-                const sel = document.getElementById('mesSelector');
-                sel.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
-                sel.addEventListener('change', update);
+                const selMes = document.getElementById('mesSelector');
+                selMes.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
+                
+                selMes.addEventListener('change', update);
+                document.getElementById('actividadSelector').addEventListener('change', update);
                 document.getElementById('searchInput').addEventListener('input', update);
                 update();
             }
@@ -125,15 +141,28 @@
 
     function update() {
         const mes = document.getElementById('mesSelector').value;
+        const filtroAct = document.getElementById('actividadSelector').value;
         const rawQ = document.getElementById('searchInput').value.toLowerCase();
         const tokens = rawQ.split(' ').filter(t => t.trim() !== '');
-        const qClean = rawQ.replace(/[^a-z0-9]/g, '');
         
         let kpi = { f: 0, c: 0, fn: 0, s: 0 };
         let mData = {}, rData = {};
 
         rawData.forEach(row => {
-            if (String(row[0]).trim() === "88" && String(row[14]).trim() === mes) {
+            const actRow = String(row[0] || "").trim();
+            const mesRow = String(row[14] || "").trim();
+
+            // Lógica de Filtro de Actividad
+            let matchAct = false;
+            if (filtroAct === "TODAS") {
+                matchAct = true; 
+            } else if (filtroAct === "NADA") {
+                matchAct = (actRow === "" || actRow === "0");
+            } else {
+                matchAct = (actRow === filtroAct);
+            }
+
+            if (matchAct && mesRow === mes) {
                 const marca = String(row[16] || "").toLowerCase();
                 const medida = String(row[13] || "").toLowerCase();
                 const rodado = String(row[11] || "").toLowerCase();
@@ -142,9 +171,12 @@
                 const fullText = `${marca} ${medida} ${rodado} ${desc}`;
                 const fullClean = fullText.replace(/[^a-z0-9]/g, '');
                 
-                const match = tokens.length === 0 || tokens.every(t => fullText.includes(t) || (t.replace(/[^a-z0-9]/g, '') !== '' && fullClean.includes(t.replace(/[^a-z0-9]/g, ''))));
+                const matchBusqueda = tokens.length === 0 || tokens.every(t => {
+                    const tClean = t.replace(/[^a-z0-9]/g, '');
+                    return fullText.includes(t) || (tClean !== '' && fullClean.includes(tClean));
+                });
 
-                if (match) {
+                if (matchBusqueda) {
                     const imp = parseFloat(String(row[6]).replace(/[$\s]/g, '').replace(/,/g, '')) || 0;
                     const can = parseFloat(row[5]) || 0;
                     const isServ = String(row[10]).trim() === "A_SERVICIO";
