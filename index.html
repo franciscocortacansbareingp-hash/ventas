@@ -49,12 +49,6 @@
         .page { display: none; }
         .page.active { display: block; }
 
-        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px; }
-        .card { background: var(--surface); padding: 25px; border-radius: 16px; border: 1px solid var(--border); }
-        .label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: block; }
-        .value { font-size: 1.8rem; font-weight: 800; color: var(--text); }
-        .sub-value { color: var(--accent); font-size: 0.9rem; margin-top: 8px; font-weight: 600; }
-
         .table-container { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 40px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 15px 20px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); }
@@ -68,6 +62,12 @@
         
         .num { text-align: right; font-weight: 700; }
         .tag { background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+
+        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .card { background: var(--surface); padding: 25px; border-radius: 16px; border: 1px solid var(--border); }
+        .label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: block; }
+        .value { font-size: 1.8rem; font-weight: 800; color: var(--text); }
+        .sub-value { color: var(--accent); font-size: 0.9rem; margin-top: 8px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -205,9 +205,11 @@
             const valorActRow = (actRow === "" || actRow === "0") ? "NADA" : actRow;
             if (!checkedBoxes.includes(valorActRow)) return;
 
+            // MAPEO CORRECTO DE COLUMNAS
             const marca = String(row[16] || "").toLowerCase();
-            const desc = String(row[9] || "").toLowerCase();
-            const rodado = String(row[11] || "").trim();
+            const desc = String(row[4] || "").toLowerCase(); // COLUMNA E (Índice 4)
+            const rodado = String(row[11] || "").trim();    // COLUMNA L (Índice 11)
+            
             const fullText = `${marca} ${desc} ${rodado}`;
             if (!tokens.every(t => fullText.includes(t))) return;
 
@@ -216,18 +218,22 @@
             const esServicio = String(row[10]).trim().toUpperCase() === "A_SERVICIO";
 
             kpi.f += imp;
+            
+            // Lógica para Pestaña Detallado (Solo Neumáticos)
             if (!esServicio && rodado !== "" && rodado !== "0") {
                 kpi.c += can;
                 kpi.fn += imp;
+                
                 if (!rData[rodado]) rData[rodado] = { c: 0, f: 0, details: {} };
                 rData[rodado].c += can;
                 rData[rodado].f += imp;
                 
-                const dKey = String(row[9] || "Sin descripción").toUpperCase();
+                const dKey = desc.toUpperCase() || "SIN DESCRIPCIÓN";
                 if (!rData[rodado].details[dKey]) rData[rodado].details[dKey] = { c: 0, f: 0 };
                 rData[rodado].details[dKey].c += can;
                 rData[rodado].details[dKey].f += imp;
             }
+            
             if (esServicio) kpi.s += imp;
 
             const mKey = marca.toUpperCase() || "OTRO";
@@ -236,6 +242,7 @@
             mData[mKey].f += imp;
         });
 
+        // KPIs
         document.getElementById('kpiFact').innerText = fmt(kpi.f);
         document.getElementById('kpiCant').innerText = fmtNum(kpi.c) + ' u.';
         document.getElementById('kpiFactNeu').innerText = fmt(kpi.fn);
@@ -243,16 +250,18 @@
         document.getElementById('kpiIncid').innerText = (kpi.f > 0 ? (kpi.s / kpi.f * 100).toFixed(1) : 0) + '% Incidencia';
         document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
 
+        // Tabla General
         const sortedM = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
         document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedM.slice(0, 10).map(([m, v]) => `
             <tr><td>${m}</td><td class="num">${kpi.f > 0 ? (v.f/kpi.f*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
         `).join('');
 
+        // Tabla Detallada con Acordeón
         const rodadosHtml = Object.entries(rData)
             .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
             .map(([r, v], idx) => {
                 const detailRows = Object.entries(v.details)
-                    .sort((a,b) => b[1].f - a[1].f) // Ordenar por importe las descripciones
+                    .sort((a,b) => b[1].f - a[1].f)
                     .map(([d, val]) => `
                         <tr class="detalle-desc desc-${idx}">
                             <td class="desc-text">${d}</td>
