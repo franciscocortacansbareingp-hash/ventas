@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barein Dashboard | Total con Filtros</title>
+    <title>Barein Dashboard | Filtro Múltiple</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -14,8 +14,14 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; overflow-x: hidden; }
         .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; gap: 15px; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
         .search-box { flex-grow: 1; min-width: 200px; }
-        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; transition: 0.2s; }
-        input:focus, select:focus { border-color: var(--accent); }
+        
+        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; outline: none; transition: 0.2s; }
+        
+        /* Estilo para el selector múltiple */
+        select[multiple] { height: 42px; cursor: pointer; }
+        select[multiple] option { padding: 4px; }
+        .filter-label { font-size: 9px; color: var(--accent); font-weight: 800; text-transform: uppercase; margin-bottom: 4px; display: block; }
+
         .tabs { display: flex; justify-content: center; gap: 25px; margin: 25px 0; border-bottom: 1px solid var(--border); }
         .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 20px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 13px; }
         .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -40,14 +46,19 @@
 <body>
 
 <div class="nav">
-    <div style="font-weight: 800; color: var(--accent); font-size: 1.1rem;">BAREIN<span style="color:white; font-weight:400">DASHBOARD</span></div>
-    <div style="width: 140px;"><select id="mesSelector"></select></div>
-    <!-- REINSTALADO EL FILTRO DE ACTIVIDAD -->
-    <div style="width: 180px;">
-        <select id="actividadSelector">
-            <option value="TODAS">Todas las Actividades</option>
-            <option value="1">1 - Mostrador</option>
-            <option value="5">5 - Empresa</option>
+    <div style="font-weight: 800; color: var(--accent); font-size: 1.1rem; margin-right: 10px;">BAREIN</div>
+    
+    <div style="width: 130px;">
+        <span class="filter-label">Mes</span>
+        <select id="mesSelector"></select>
+    </div>
+
+    <!-- SELECTOR MÚLTIPLE (Mantené presionado Ctrl o Cmd para elegir varios) -->
+    <div style="width: 220px;">
+        <span class="filter-label">Actividades (Ctrl+Click)</span>
+        <select id="actividadSelector" multiple title="Mantené presionado Ctrl para seleccionar varias">
+            <option value="1" selected>1 - Mostrador</option>
+            <option value="5" selected>5 - Empresa</option>
             <option value="10">10 - Reventa</option>
             <option value="15">15 - Seguros</option>
             <option value="20">20 - Competición</option>
@@ -57,8 +68,10 @@
             <option value="NADA">Sin Identificar</option>
         </select>
     </div>
+
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscá rodado, marca o descripción...">
+        <span class="filter-label">Buscador libre</span>
+        <input type="text" id="searchInput" placeholder="Marca, rodado...">
     </div>
 </div>
 
@@ -70,12 +83,11 @@
 <div class="container">
     <div id="general" class="page active">
         <div class="grid-kpi">
-            <div class="card"><span class="label">Facturación Total</span><div id="kpiFact" class="value">$ 0</div></div>
+            <div class="card"><span class="label">Facturación Total Seleccionada</span><div id="kpiFact" class="value">$ 0</div></div>
             <div class="card"><span class="label">Volumen Neumáticos</span><div id="kpiCant" class="value">0 u.</div><div id="kpiFactNeu" class="sub-value">$ 0</div></div>
             <div class="card"><span class="label">Servicios</span><div id="kpiServ" class="value">$ 0</div><div id="kpiIncid" class="sub-value">0% Incidencia</div></div>
             <div class="card"><span class="label">Ticket Promedio (Cubiertas)</span><div id="kpiProm" class="value">$ 0</div></div>
         </div>
-        <div class="section-header"><span>Top 10 Marcas</span><div class="line"></div></div>
         <div class="table-container">
             <table id="tablaMarcasHome">
                 <thead><tr><th>Marca</th><th class="num">Share %</th><th class="num">Total Facturado</th></tr></thead>
@@ -92,13 +104,6 @@
                 <tbody></tbody>
             </table>
         </div>
-        <div class="section-header"><span>Ranking de Marcas</span><div class="line"></div></div>
-        <div class="table-container">
-            <table id="tablaMarcasFull">
-                <thead><tr><th>Marca</th><th class="num">Unidades</th><th class="num">Total Facturado</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
     </div>
 </div>
 
@@ -106,15 +111,11 @@
     const URL_PUB = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCmHe-75PjLOZxC8rj9ZiRx58SU0crBtp9FGokKFYUIN3FSONy7091EQPrVZWmHrkuXEuK-rg3uCx4/pub?output=csv';
     let rawData = [];
 
-    // LÓGICA DE INTERPRETACIÓN DE DINERO (REPLICADA)
     function parseNum(v) {
         if (!v || v === "" || v === "-" || v === " ") return 0;
         let s = String(v).trim().replace(/[$\s]/g, '');
-        if (s.includes(',') && s.includes('.')) {
-            s = s.replace(/\./g, '').replace(',', '.');
-        } else if (s.includes(',')) {
-            s = s.replace(',', '.');
-        }
+        if (s.includes(',') && s.includes('.')) { s = s.replace(/\./g, '').replace(',', '.'); } 
+        else if (s.includes(',')) { s = s.replace(',', '.'); }
         let n = parseFloat(s);
         return isNaN(n) ? 0 : n;
     }
@@ -128,9 +129,7 @@
             header: false,
             complete: (results) => {
                 rawData = results.data;
-                const meses = [...new Set(rawData.map(r => String(r[14] || "").trim()))]
-                              .filter(m => m && m.toLowerCase() !== 'mes');
-                
+                const meses = [...new Set(rawData.map(r => String(r[14] || "").trim()))].filter(m => m && m.toLowerCase() !== 'mes');
                 const selMes = document.getElementById('mesSelector');
                 selMes.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
                 
@@ -151,59 +150,58 @@
 
     function update() {
         const mesSel = document.getElementById('mesSelector').value;
-        const filtroAct = document.getElementById('actividadSelector').value;
         const search = document.getElementById('searchInput').value.toLowerCase().trim();
         const tokens = search.split(' ').filter(t => t !== '');
         
+        // Obtener array de actividades seleccionadas
+        const actOptions = document.getElementById('actividadSelector').selectedOptions;
+        const actividadesSeleccionadas = Array.from(actOptions).map(opt => opt.value);
+
         let kpi = { f: 0, c: 0, fn: 0, s: 0 };
         let mData = {}, rData = {};
 
         rawData.forEach((row, index) => {
             if (index === 0 || row.length < 15) return;
 
-            // Filtro de Mes
-            const mesRow = String(row[14] || "").trim();
-            if (mesRow !== mesSel) return;
+            // 1. Filtro Mes
+            if (String(row[14] || "").trim() !== mesSel) return;
 
-            // Filtro de Actividad (Agregado de vuelta)
-            const actRow = String(row[8] || "").trim(); // Columna de Actividad
-            let matchAct = (filtroAct === "TODAS") || 
-                           (filtroAct === "NADA" && (actRow === "" || actRow === "0")) || 
-                           (actRow === filtroAct);
-            if (!matchAct) return;
+            // 2. Filtro Actividad Múltiple
+            const actRow = String(row[8] || "").trim();
+            const valorActRow = (actRow === "" || actRow === "0") ? "NADA" : actRow;
+            if (!actividadesSeleccionadas.includes(valorActRow)) return;
 
+            // 3. Filtro Búsqueda
             const marca = String(row[16] || "").toLowerCase();
             const desc = String(row[9] || "").toLowerCase();
             const rodado = String(row[11] || "").trim();
             const fullText = `${marca} ${desc} ${rodado}`;
+            if (!tokens.every(t => fullText.includes(t))) return;
 
-            const matchSearch = tokens.every(t => fullText.includes(t));
+            // Lógica de ImporteML
+            const imp = parseNum(row[6]);
+            const can = parseFloat(String(row[5]).replace(',', '.')) || 0;
+            const esServicio = String(row[10]).trim().toUpperCase() === "A_SERVICIO";
 
-            if (matchSearch) {
-                const imp = parseNum(row[6]); // ImporteML con lógica parseNum
-                const can = parseFloat(String(row[5]).replace(',', '.')) || 0;
-                const esServicio = String(row[10]).trim().toUpperCase() === "A_SERVICIO";
+            kpi.f += imp;
 
-                kpi.f += imp;
-
-                if (!esServicio && rodado !== "" && rodado !== "0") {
-                    kpi.c += can;
-                    kpi.fn += imp;
-                    if (!rData[rodado]) rData[rodado] = { c: 0, f: 0 };
-                    rData[rodado].c += can;
-                    rData[rodado].f += imp;
-                }
-
-                if (esServicio) kpi.s += imp;
-
-                const mKey = marca.toUpperCase() || "OTRO";
-                if (!mData[mKey]) mData[mKey] = { c: 0, f: 0 };
-                mData[mKey].c += can;
-                mData[mKey].f += imp;
+            if (!esServicio && rodado !== "" && rodado !== "0") {
+                kpi.c += can;
+                kpi.fn += imp;
+                if (!rData[rodado]) rData[rodado] = { c: 0, f: 0 };
+                rData[rodado].c += can;
+                rData[rodado].f += imp;
             }
+
+            if (esServicio) kpi.s += imp;
+
+            const mKey = marca.toUpperCase() || "OTRO";
+            if (!mData[mKey]) mData[mKey] = { c: 0, f: 0 };
+            mData[mKey].c += can;
+            mData[mKey].f += imp;
         });
 
-        // Actualizar KPIs
+        // Renderizar
         document.getElementById('kpiFact').innerText = fmt(kpi.f);
         document.getElementById('kpiCant').innerText = fmtNum(kpi.c) + ' u.';
         document.getElementById('kpiFactNeu').innerText = fmt(kpi.fn);
@@ -211,14 +209,9 @@
         document.getElementById('kpiIncid').innerText = (kpi.f > 0 ? (kpi.s / kpi.f * 100).toFixed(1) : 0) + '% Incidencia';
         document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
 
-        // Tablas
         const sortedM = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
         document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedM.slice(0, 10).map(([m, v]) => `
             <tr><td>${m}</td><td class="num">${kpi.f > 0 ? (v.f/kpi.f*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
-        `).join('');
-
-        document.querySelector('#tablaMarcasFull tbody').innerHTML = sortedM.map(([m, v]) => `
-            <tr><td>${m}</td><td class="num">${fmtNum(v.c)} u.</td><td class="num">${fmt(v.f)}</td></tr>
         `).join('');
 
         document.querySelector('#tablaRodados tbody').innerHTML = Object.entries(rData)
