@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barein Dashboard | Filtro Múltiple</title>
+    <title>Barein Dashboard | Multi-Filtro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -12,110 +12,118 @@
             --text: #f0f0f0; --muted: #a0a0a0; --accent: #6366f1;
         }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; overflow-x: hidden; }
-        .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; gap: 15px; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
-        .search-box { flex-grow: 1; min-width: 200px; }
+        .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; gap: 20px; align-items: flex-end; position: sticky; top: 0; z-index: 1000; }
         
-        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; outline: none; transition: 0.2s; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-label { font-size: 10px; color: var(--accent); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* Estilo para el selector múltiple */
-        select[multiple] { height: 42px; cursor: pointer; }
-        select[multiple] option { padding: 4px; }
-        .filter-label { font-size: 9px; color: var(--accent); font-weight: 800; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px; font-size: 13px; outline: none; }
 
-        .tabs { display: flex; justify-content: center; gap: 25px; margin: 25px 0; border-bottom: 1px solid var(--border); }
-        .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 20px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 13px; }
-        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-        .container { max-width: 1400px; margin: auto; padding: 0 20px; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        /* Estilo Dropdown Multi-Select */
+        .multiselect { position: relative; width: 220px; }
+        .selectBox { position: relative; cursor: pointer; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 13px; }
+        .overSelect { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+        #checkboxes { 
+            display: none; border: 1px solid var(--border); background: var(--surface); 
+            position: absolute; width: 100%; z-index: 1001; border-radius: 8px; margin-top: 5px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+        #checkboxes label { display: flex; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        #checkboxes label:hover { background: rgba(99, 102, 241, 0.1); color: var(--accent); }
+        #checkboxes input { margin-right: 10px; width: auto; }
+
+        .search-box { flex-grow: 1; }
+        .search-box input { width: 100%; }
+
+        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .card { background: var(--surface); padding: 25px; border-radius: 16px; border: 1px solid var(--border); }
-        .label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px; display: block; }
-        .value { font-size: 1.8rem; font-weight: 800; line-height: 1.1; color: var(--text); }
-        .sub-value { color: var(--accent); font-size: 0.9rem; margin-top: 8px; font-weight: 600; }
-        .section-header { margin: 40px 0 20px; display: flex; align-items: center; gap: 15px; color: var(--accent); font-weight: 800; text-transform: uppercase; font-size: 0.85rem; }
-        .line { height: 1px; background: var(--border); flex-grow: 1; }
-        .table-container { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 40px; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th { text-align: left; padding: 15px 20px; font-size: 11px; color: var(--muted); background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); }
+        .value { font-size: 1.8rem; font-weight: 800; color: var(--text); margin: 5px 0; }
+        .sub-value { color: var(--accent); font-size: 0.9rem; font-weight: 600; }
+        
+        .table-container { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px 20px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
         td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-size: 14px; }
         .num { text-align: right; font-weight: 700; }
-        .tag { background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+        .tag { background: var(--accent); color: white; padding: 3px 7px; border-radius: 5px; font-size: 11px; font-weight: 700; }
     </style>
 </head>
 <body>
 
 <div class="nav">
-    <div style="font-weight: 800; color: var(--accent); font-size: 1.1rem; margin-right: 10px;">BAREIN</div>
-    
-    <div style="width: 130px;">
+    <div class="filter-group">
         <span class="filter-label">Mes</span>
-        <select id="mesSelector"></select>
+        <select id="mesSelector" style="width: 130px;"></select>
     </div>
 
-    <!-- SELECTOR MÚLTIPLE (Mantené presionado Ctrl o Cmd para elegir varios) -->
-    <div style="width: 220px;">
-        <span class="filter-label">Actividades (Ctrl+Click)</span>
-        <select id="actividadSelector" multiple title="Mantené presionado Ctrl para seleccionar varias">
-            <option value="1" selected>1 - Mostrador</option>
-            <option value="5" selected>5 - Empresa</option>
-            <option value="10">10 - Reventa</option>
-            <option value="15">15 - Seguros</option>
-            <option value="20">20 - Competición</option>
-            <option value="30">30 - Marketplace</option>
-            <option value="40">40 - Redes</option>
-            <option value="50">50 - Logística</option>
-            <option value="NADA">Sin Identificar</option>
-        </select>
+    <div class="filter-group">
+        <span class="filter-label">Actividades</span>
+        <div class="multiselect">
+            <div class="selectBox" onclick="toggleCheckboxes()">
+                <div id="selectedDisplay">Mostrador, Empresa...</div>
+                <div class="overSelect"></div>
+            </div>
+            <div id="checkboxes">
+                <label><input type="checkbox" value="1" checked onchange="update()"> 1 - Mostrador</label>
+                <label><input type="checkbox" value="5" checked onchange="update()"> 5 - Empresa</label>
+                <label><input type="checkbox" value="10" onchange="update()"> 10 - Reventa</label>
+                <label><input type="checkbox" value="15" onchange="update()"> 15 - Seguros</label>
+                <label><input type="checkbox" value="20" onchange="update()"> 20 - Competición</label>
+                <label><input type="checkbox" value="30" onchange="update()"> 30 - Marketplace</label>
+                <label><input type="checkbox" value="40" onchange="update()"> 40 - Redes</label>
+                <label><input type="checkbox" value="50" onchange="update()"> 50 - Logística</label>
+                <label><input type="checkbox" value="NADA" onchange="update()"> Sin Identificar</label>
+            </div>
+        </div>
     </div>
 
-    <div class="search-box">
-        <span class="filter-label">Buscador libre</span>
-        <input type="text" id="searchInput" placeholder="Marca, rodado...">
+    <div class="filter-group search-box">
+        <span class="filter-label">Buscador</span>
+        <input type="text" id="searchInput" placeholder="Marca, rodado o descripción...">
     </div>
-</div>
-
-<div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('general')">PERFORMANCE GENERAL</button>
-    <button class="tab-btn" onclick="switchTab('detallado')">DETALLE PRODUCTOS</button>
 </div>
 
 <div class="container">
-    <div id="general" class="page active">
-        <div class="grid-kpi">
-            <div class="card"><span class="label">Facturación Total Seleccionada</span><div id="kpiFact" class="value">$ 0</div></div>
-            <div class="card"><span class="label">Volumen Neumáticos</span><div id="kpiCant" class="value">0 u.</div><div id="kpiFactNeu" class="sub-value">$ 0</div></div>
-            <div class="card"><span class="label">Servicios</span><div id="kpiServ" class="value">$ 0</div><div id="kpiIncid" class="sub-value">0% Incidencia</div></div>
-            <div class="card"><span class="label">Ticket Promedio (Cubiertas)</span><div id="kpiProm" class="value">$ 0</div></div>
-        </div>
-        <div class="table-container">
-            <table id="tablaMarcasHome">
-                <thead><tr><th>Marca</th><th class="num">Share %</th><th class="num">Total Facturado</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
+    <div class="grid-kpi">
+        <div class="card"><div class="filter-label">Facturación Total</div><div id="kpiFact" class="value">$ 0</div></div>
+        <div class="card"><div class="filter-label">Neumáticos</div><div id="kpiCant" class="value">0 u.</div><div id="kpiFactNeu" class="sub-value">$ 0</div></div>
+        <div class="card"><div class="filter-label">Servicios</div><div id="kpiServ" class="value">$ 0</div><div id="kpiIncid" class="sub-value">0% Incidencia</div></div>
     </div>
 
-    <div id="detallado" class="page">
-        <div class="section-header"><span>Ventas por Rodado</span><div class="line"></div></div>
-        <div class="table-container">
-            <table id="tablaRodados">
-                <thead><tr><th>Rodado</th><th class="num">Unidades</th><th class="num">Total Facturado</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>Rodado</th><th class="num">Unidades</th><th class="num">Total Facturado</th></tr></thead>
+            <tbody id="tablaRodados"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
     const URL_PUB = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCmHe-75PjLOZxC8rj9ZiRx58SU0crBtp9FGokKFYUIN3FSONy7091EQPrVZWmHrkuXEuK-rg3uCx4/pub?output=csv';
     let rawData = [];
+    let expanded = false;
+
+    function toggleCheckboxes() {
+        const checkboxes = document.getElementById("checkboxes");
+        checkboxes.style.display = expanded ? "none" : "block";
+        expanded = !expanded;
+    }
+
+    // Cerrar el menú si se hace click afuera
+    document.addEventListener('click', function(e) {
+        const multiselect = document.querySelector('.multiselect');
+        if (!multiselect.contains(e.target)) {
+            document.getElementById("checkboxes").style.display = "none";
+            expanded = false;
+        }
+    });
 
     function parseNum(v) {
         if (!v || v === "" || v === "-" || v === " ") return 0;
         let s = String(v).trim().replace(/[$\s]/g, '');
-        if (s.includes(',') && s.includes('.')) { s = s.replace(/\./g, '').replace(',', '.'); } 
-        else if (s.includes(',')) { s = s.replace(',', '.'); }
+        if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+        else if (s.includes(',')) s = s.replace(',', '.');
         let n = parseFloat(s);
         return isNaN(n) ? 0 : n;
     }
@@ -132,20 +140,11 @@
                 const meses = [...new Set(rawData.map(r => String(r[14] || "").trim()))].filter(m => m && m.toLowerCase() !== 'mes');
                 const selMes = document.getElementById('mesSelector');
                 selMes.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
-                
                 selMes.addEventListener('change', update);
-                document.getElementById('actividadSelector').addEventListener('change', update);
                 document.getElementById('searchInput').addEventListener('input', update);
                 update();
             }
         });
-    }
-
-    function switchTab(id) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        event.currentTarget.classList.add('active');
     }
 
     function update() {
@@ -153,38 +152,30 @@
         const search = document.getElementById('searchInput').value.toLowerCase().trim();
         const tokens = search.split(' ').filter(t => t !== '');
         
-        // Obtener array de actividades seleccionadas
-        const actOptions = document.getElementById('actividadSelector').selectedOptions;
-        const actividadesSeleccionadas = Array.from(actOptions).map(opt => opt.value);
+        // Obtener valores de los checkboxes tildados
+        const checkedBoxes = Array.from(document.querySelectorAll('#checkboxes input:checked')).map(cb => cb.value);
+        document.getElementById('selectedDisplay').innerText = checkedBoxes.length > 0 ? `Seleccionados: ${checkedBoxes.length}` : "Ninguno";
 
         let kpi = { f: 0, c: 0, fn: 0, s: 0 };
-        let mData = {}, rData = {};
+        let rData = {};
 
         rawData.forEach((row, index) => {
             if (index === 0 || row.length < 15) return;
-
-            // 1. Filtro Mes
             if (String(row[14] || "").trim() !== mesSel) return;
 
-            // 2. Filtro Actividad Múltiple
             const actRow = String(row[8] || "").trim();
             const valorActRow = (actRow === "" || actRow === "0") ? "NADA" : actRow;
-            if (!actividadesSeleccionadas.includes(valorActRow)) return;
+            if (!checkedBoxes.includes(valorActRow)) return;
 
-            // 3. Filtro Búsqueda
-            const marca = String(row[16] || "").toLowerCase();
-            const desc = String(row[9] || "").toLowerCase();
-            const rodado = String(row[11] || "").trim();
-            const fullText = `${marca} ${desc} ${rodado}`;
+            const fullText = `${row[16]} ${row[9]} ${row[11]}`.toLowerCase();
             if (!tokens.every(t => fullText.includes(t))) return;
 
-            // Lógica de ImporteML
             const imp = parseNum(row[6]);
             const can = parseFloat(String(row[5]).replace(',', '.')) || 0;
             const esServicio = String(row[10]).trim().toUpperCase() === "A_SERVICIO";
+            const rodado = String(row[11] || "").trim();
 
             kpi.f += imp;
-
             if (!esServicio && rodado !== "" && rodado !== "0") {
                 kpi.c += can;
                 kpi.fn += imp;
@@ -192,29 +183,16 @@
                 rData[rodado].c += can;
                 rData[rodado].f += imp;
             }
-
             if (esServicio) kpi.s += imp;
-
-            const mKey = marca.toUpperCase() || "OTRO";
-            if (!mData[mKey]) mData[mKey] = { c: 0, f: 0 };
-            mData[mKey].c += can;
-            mData[mKey].f += imp;
         });
 
-        // Renderizar
         document.getElementById('kpiFact').innerText = fmt(kpi.f);
         document.getElementById('kpiCant').innerText = fmtNum(kpi.c) + ' u.';
         document.getElementById('kpiFactNeu').innerText = fmt(kpi.fn);
         document.getElementById('kpiServ').innerText = fmt(kpi.s);
         document.getElementById('kpiIncid').innerText = (kpi.f > 0 ? (kpi.s / kpi.f * 100).toFixed(1) : 0) + '% Incidencia';
-        document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
 
-        const sortedM = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
-        document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedM.slice(0, 10).map(([m, v]) => `
-            <tr><td>${m}</td><td class="num">${kpi.f > 0 ? (v.f/kpi.f*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
-        `).join('');
-
-        document.querySelector('#tablaRodados tbody').innerHTML = Object.entries(rData)
+        document.getElementById('tablaRodados').innerHTML = Object.entries(rData)
             .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
             .map(([r, v]) => `<tr><td><span class="tag">R${r}</span></td><td class="num">${fmtNum(v.c)} u.</td><td class="num">${fmt(v.f)}</td></tr>`).join('');
     }
