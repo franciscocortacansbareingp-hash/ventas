@@ -36,10 +36,10 @@
         .section-header { margin: 40px 0 20px; display: flex; align-items: center; gap: 15px; }
         .section-header h3 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
         .line { height: 1px; background: var(--border); flex-grow: 1; }
-        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; margin-bottom: 30px; table-layout: fixed; }
+        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; margin-bottom: 30px; }
         th { background: rgba(255,255,255,0.03); padding: 15px; text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .num { text-align: right; font-weight: 600; width: 150px; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .num { text-align: right; font-weight: 600; }
         .tag-rodado { background: var(--accent); color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
         .progress-bar { height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 8px; width: 60px; display: inline-block; vertical-align: middle; margin-left: 10px; }
         .progress-fill { height: 100%; background: var(--accent); }
@@ -51,7 +51,7 @@
     <div class="nav-container">
         <h2 style="margin:0; font-size: 1.2rem; color: var(--accent);">Barein <span style="color:var(--text)">Ventas</span></h2>
         <select id="mesSelector"><option>Cargando...</option></select>
-        <div class="search-box"><input type="text" id="searchInput" placeholder="Buscar por marca, rodado, medida o descripción..."></div>
+        <div class="search-box"><input type="text" id="searchInput" placeholder="Buscá por 1757013, marca o rodado..."></div>
         <button class="btn-theme" onclick="toggleTheme()">🌓</button>
     </div>
 </div>
@@ -125,31 +125,43 @@
     }
 
     function parse(v) { if(!v) return 0; let s = String(v).replace(/[$\s]/g, '').replace(/,/g, ''); return parseFloat(s) || 0; }
+    
+    // Función para normalizar texto (quita / * R espacios)
+    function clean(txt) {
+        return String(txt).toLowerCase().replace(/[\/\*\s\-r]/g, '');
+    }
+
     function switchTab(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         event.currentTarget.classList.add('active');
     }
+    
     function toggleTheme() { document.body.classList.toggle('light-mode'); }
 
     function update() {
         const mes = document.getElementById('mesSelector').value;
-        const q = document.getElementById('searchInput').value.toLowerCase();
+        const queryRaw = document.getElementById('searchInput').value;
+        const qClean = clean(queryRaw);
+        
         let kpi = { f: 0, c: 0, fn: 0, s: 0 };
         let mData = {}, rData = {};
 
         rawData.forEach(row => {
             const vRow = String(row[0]).trim();
             const mRow = String(row[14]).trim();
+            
             if (vRow === "88" && mRow === mes) {
                 const marca = String(row[16] || "SIN MARCA").trim();
                 const rodado = String(row[11]).trim();
-                const medida = String(row[13] || "").toLowerCase(); // Columna de Medida
-                const desc = String(row[9] || "").toLowerCase();
+                const medida = String(row[13] || "");
+                const desc = String(row[9] || "");
                 
-                // Buscador optimizado para incluir Medida
-                if (marca.toLowerCase().includes(q) || rodado.includes(q) || medida.includes(q) || desc.includes(q)) {
+                // Texto original para búsqueda de marca (más permisivo)
+                const fullTextClean = clean(marca + rodado + medida + desc);
+                
+                if (fullTextClean.includes(qClean)) {
                     const imp = parse(row[6]);
                     const can = parse(row[5]);
                     const isServ = String(row[10]).trim() === "A_SERVICIO";
