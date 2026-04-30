@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barein Dashboard</title>
+    <title>Barein Dashboard | Final</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -60,12 +60,11 @@
             <option value="30">30 - Marketplace</option>
             <option value="40">40 - Redes</option>
             <option value="50">50 - Logística</option>
-            <option value="NADA">Sin Identificar</option>
-            <option value="3">3 - N/A</option>
+            <option value="NADA">Sin Identificar (Vacíos)</option>
         </select>
     </div>
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Buscá marca o producto...">
+        <input type="text" id="searchInput" placeholder="Buscá rodado (ej: 17) o marca...">
     </div>
 </div>
 
@@ -113,14 +112,20 @@
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1gddLz0WmuvjDPicMY4O5uhQpe0tOL8wFmMtYzuIBi5g/export?format=csv';
     let rawData = [];
 
+    // Formato moneda Argentina: $ 1.234.567
     const fmt = (n) => '$ ' + Math.floor(n).toLocaleString('es-AR');
+    // Formato números con coma decimal
+    const fmtNum = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 1 });
 
     function init() {
         Papa.parse(SHEET_URL, {
             download: true,
             complete: (results) => {
                 rawData = results.data;
-                const meses = [...new Set(rawData.map(r => String(r[14]).trim()))].filter(m => m && m.toLowerCase() !== 'mes');
+                // Obtener meses únicos ignorando vacíos y encabezado
+                const meses = [...new Set(rawData.map(r => String(r[14]).trim()))]
+                              .filter(m => m && m.toLowerCase() !== 'mes');
+                
                 const selMes = document.getElementById('mesSelector');
                 selMes.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
                 
@@ -139,10 +144,23 @@
         event.currentTarget.classList.add('active');
     }
 
+    function parseMoney(val) {
+        if (!val) return 0;
+        let s = String(val).replace(/[$\s]/g, '');
+        // Si tiene punto y coma (ej: 1.234,50), quitamos el punto y cambiamos coma por punto
+        if (s.includes(',') && s.includes('.')) {
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Si solo tiene coma (ej: 1234,50), la cambiamos por punto
+            s = s.replace(',', '.');
+        }
+        return parseFloat(s) || 0;
+    }
+
     function update() {
         const mes = document.getElementById('mesSelector').value;
         const filtroAct = document.getElementById('actividadSelector').value;
-        const rawQ = document.getElementById('searchInput').value.toLowerCase();
+        const rawQ = document.getElementById('searchInput').value.toLowerCase().trim();
         const tokens = rawQ.split(' ').filter(t => t.trim() !== '');
         
         let kpi = { f: 0, c: 0, fn: 0, s: 0 };
@@ -152,68 +170,72 @@
             const actRow = String(row[0] || "").trim();
             const mesRow = String(row[14] || "").trim();
 
-            // Lógica de Filtro de Actividad
-            let matchAct = false;
-            if (filtroAct === "TODAS") {
-                matchAct = true; 
-            } else if (filtroAct === "NADA") {
-                matchAct = (actRow === "" || actRow === "0");
-            } else {
-                matchAct = (actRow === filtroAct);
-            }
+            // Lógica de Filtros (Si es TODAS, pasa siempre)
+            let matchAct = (filtroAct === "TODAS") || 
+                           (filtroAct === "NADA" && (actRow === "" || actRow === "0")) || 
+                           (actRow === filtroAct);
 
             if (matchAct && mesRow === mes) {
                 const marca = String(row[16] || "").toLowerCase();
                 const medida = String(row[13] || "").toLowerCase();
-                const rodado = String(row[11] || "").toLowerCase();
+                const rodado = String(row[11] || "").trim().toLowerCase();
                 const desc = String(row[9] || "").toLowerCase();
                 
-                const fullText = `${marca} ${medida} ${rodado} ${desc}`;
+                const fullText = `${marca} ${medida} ${desc}`;
                 const fullClean = fullText.replace(/[^a-z0-9]/g, '');
                 
                 const matchBusqueda = tokens.length === 0 || tokens.every(t => {
+                    if (t === rodado) return true; // Match exacto por rodado
                     const tClean = t.replace(/[^a-z0-9]/g, '');
                     return fullText.includes(t) || (tClean !== '' && fullClean.includes(tClean));
                 });
 
                 if (matchBusqueda) {
-                    const imp = parseFloat(String(row[6]).replace(/[$\s]/g, '').replace(/,/g, '')) || 0;
+                    const imp = parseMoney(row[6]);
                     const can = parseFloat(row[5]) || 0;
                     const isServ = String(row[10]).trim() === "A_SERVICIO";
 
-                    kpi.f += imp;
-                    if (rodado !== "" && !isNaN(rodado)) {
-                        kpi.c += can; kpi.fn += imp;
+                    kpi.f += imp; // Facturación total (SIEMPRE SUMA)
+
+                    // Solo sumamos a unidades si hay un rodado válido
+                    if (rodado !== "" && !isNaN(rodado) && rodado !== "0") {
+                        kpi.c += can; 
+                        kpi.fn += imp;
                         if (!rData[rodado]) rData[rodado] = { c: 0, f: 0 };
-                        rData[rodado].c += can; rData[rodado].f += imp;
+                        rData[rodado].c += can; 
+                        rData[rodado].f += imp;
                     }
+                    
                     if (isServ) kpi.s += imp;
                     
                     const mKey = marca.toUpperCase() || "OTRO";
                     if (!mData[mKey]) mData[mKey] = { c: 0, f: 0 };
-                    mData[mKey].c += can; mData[mKey].f += imp;
+                    mData[mKey].c += can; 
+                    mData[mKey].f += imp;
                 }
             }
         });
 
+        // Renderizar KPIs
         document.getElementById('kpiFact').innerText = fmt(kpi.f);
-        document.getElementById('kpiCant').innerText = kpi.c.toLocaleString('es-AR') + ' u.';
+        document.getElementById('kpiCant').innerText = fmtNum(kpi.c) + ' u.';
         document.getElementById('kpiFactNeu').innerText = fmt(kpi.fn);
         document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
         document.getElementById('kpiServ').innerText = fmt(kpi.s);
 
+        // Tablas
         const sortedM = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
         document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedM.slice(0, 10).map(([m, v]) => `
-            <tr><td>${m}</td><td class="num">${kpi.f > 0 ? ((v.f/kpi.f)*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
+            <tr><td>${m}</td><td class="num">${kpi.f > 0 ? (v.f/kpi.f*100).toLocaleString('es-AR', {maximumFractionDigits: 1}) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
         `).join('');
 
         document.querySelector('#tablaMarcasFull tbody').innerHTML = sortedM.map(([m, v]) => `
-            <tr><td>${m}</td><td class="num">${v.c} u.</td><td class="num">${fmt(v.f)}</td></tr>
+            <tr><td>${m}</td><td class="num">${fmtNum(v.c)} u.</td><td class="num">${fmt(v.f)}</td></tr>
         `).join('');
 
         document.querySelector('#tablaRodados tbody').innerHTML = Object.entries(rData)
             .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
-            .map(([r, v]) => `<tr><td><span class="tag">R${r}</span></td><td class="num">${v.c} u.</td><td class="num">${fmt(v.f)}</td></tr>`).join('');
+            .map(([r, v]) => `<tr><td><span class="tag">R${r}</span></td><td class="num">${fmtNum(v.c)} u.</td><td class="num">${fmt(v.f)}</td></tr>`).join('');
     }
     init();
 </script>
