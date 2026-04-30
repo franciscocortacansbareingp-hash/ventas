@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barein Ventas</title>
+    <title>Barein Ventas - Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0a0a0a; --surface: #141414; --border: #262626; 
@@ -16,52 +16,64 @@
             --text: #1d1d1f; --muted: #6e6e73; --accent: #4f46e5;
         }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; transition: background 0.3s; }
+        
+        /* Navbar */
         .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 15px 25px; position: sticky; top: 0; z-index: 100; }
-        .nav-container { max-width: 1300px; margin: auto; display: flex; gap: 20px; align-items: center; }
-        .search-box { flex-grow: 1; }
-        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 15px; border-radius: 8px; outline: none; font-size: 14px; font-family: 'Inter', sans-serif; }
-        #searchInput { width: 100%; box-sizing: border-box; }
-        .tabs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
-        .tab-btn { background: none; border: none; color: var(--muted); padding: 10px 20px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; font-family: 'Inter', sans-serif; }
+        .nav-container { max-width: 1400px; margin: auto; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+        .search-box { flex-grow: 1; min-width: 300px; }
+        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px 15px; border-radius: 8px; outline: none; font-size: 14px; font-family: 'Inter', sans-serif; width: 100%; box-sizing: border-box; }
+        
+        /* Tabs */
+        .tabs { display: flex; justify-content: center; gap: 10px; margin: 25px 0; }
+        .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 24px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; font-family: 'Inter', sans-serif; font-size: 13px; letter-spacing: 0.5px; }
         .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-        .container { max-width: 1300px; margin: 0 auto 50px; padding: 0 20px; }
+
+        .container { max-width: 1400px; margin: 0 auto 50px; padding: 0 20px; }
         .page { display: none; }
         .page.active { display: block; }
-        
-        /* Ajuste de KPIs para evitar que se corran los números */
-        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .card { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-        .label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
-        .value { font-size: 1.5rem; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
-        .sub-value-main { font-size: 0.95rem; font-weight: 600; margin-top: 4px; color: var(--muted); }
 
+        /* KPIs Estilo image_fdc744.png */
+        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .card { background: var(--surface); padding: 30px; border-radius: 16px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .label { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 15px; display: block; }
+        .value { font-size: 2.2rem; font-weight: 800; color: var(--text); line-height: 1; word-break: break-all; }
+        .sub-value { font-size: 1.1rem; font-weight: 600; margin-top: 10px; color: var(--muted); display: block; }
+
+        /* Tablas */
         .section-header { margin: 40px 0 20px; display: flex; align-items: center; gap: 15px; }
-        .section-header h3 { margin: 0; font-size: 1rem; text-transform: uppercase; }
+        .section-header h3 { margin: 0; font-size: 1.1rem; text-transform: uppercase; font-weight: 700; color: var(--accent); }
         .line { height: 1px; background: var(--border); flex-grow: 1; }
-        table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; margin-bottom: 30px; table-layout: fixed; }
-        th { background: rgba(255,255,255,0.03); padding: 12px 15px; text-align: left; font-size: 10px; color: var(--muted); text-transform: uppercase; }
-        td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .num { text-align: right; font-weight: 600; width: 30%; }
-        .tag-rodado { background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+        
+        .table-container { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background: rgba(255,255,255,0.02); padding: 15px 20px; text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+        td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .num { text-align: right; font-weight: 700; width: 180px; }
+        .tag { background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+
+        @media (max-width: 768px) { .value { font-size: 1.8rem; } }
     </style>
 </head>
 <body>
 
 <div class="nav">
     <div class="nav-container">
-        <h2 style="margin:0; font-size: 1.1rem; color: var(--accent);">Barein <span style="color:var(--text)">Ventas</span></h2>
-        <select id="mesSelector"><option>Cargando...</option></select>
-        <div class="search-box"><input type="text" id="searchInput" placeholder="Ej: 175 70 13 o 175*70*13..."></div>
-        <button onclick="document.body.classList.toggle('light-mode')" style="background:none; border:none; cursor:pointer;">🌓</button>
+        <h2 style="margin:0; font-size: 1.2rem; font-weight: 800; color: var(--accent);">BAREIN <span style="color:var(--text); font-weight: 300;">DASHBOARD</span></h2>
+        <div style="width: 150px;"><select id="mesSelector"><option>Mes...</option></select></div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Buscá por medida (175 70 13), marca o descripción...">
+        </div>
+        <button onclick="document.body.classList.toggle('light-mode')" style="background:none; border:none; cursor:pointer; font-size: 1.2rem;">🌓</button>
     </div>
 </div>
 
 <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('general')">GLOBAL</button>
-    <button class="tab-btn" onclick="switchTab('detallado')">DETALLE</button>
+    <button class="tab-btn active" onclick="switchTab('general')">PERFORMANCE GENERAL</button>
+    <button class="tab-btn" onclick="switchTab('detallado')">DETALLE DE PRODUCTOS</button>
 </div>
 
 <div class="container">
+    <!-- SOLAPA 1: GENERAL -->
     <div id="general" class="page active">
         <div class="grid-kpi">
             <div class="card">
@@ -71,7 +83,7 @@
             <div class="card">
                 <span class="label">Volumen Neumáticos</span>
                 <div id="kpiCant" class="value">0 u.</div>
-                <div id="kpiFactNeu" class="sub-value-main">$ 0</div>
+                <div id="kpiFactNeu" class="sub-value">$ 0</div>
             </div>
             <div class="card">
                 <span class="label">Ticket Promedio</span>
@@ -83,19 +95,32 @@
             </div>
         </div>
 
-        <div class="section-header"><h3>Top Marcas</h3><div class="line"></div></div>
-        <table id="tablaMarcasHome">
-            <thead><tr><th>Marca</th><th class="num">Share</th><th class="num">Total</th></tr></thead>
-            <tbody></tbody>
-        </table>
+        <div class="section-header"><h3>Top 10 Marcas por Facturación</h3><div class="line"></div></div>
+        <div class="table-container">
+            <table id="tablaMarcasHome">
+                <thead><tr><th>Marca</th><th class="num">Participación</th><th class="num">Total Facturado</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
+    <!-- SOLAPA 2: DETALLADO -->
     <div id="detallado" class="page">
-        <div class="section-header"><h3>Ranking de Rodados</h3><div class="line"></div></div>
-        <table id="tablaRodados">
-            <thead><tr><th>Rodado</th><th class="num">Unidades</th><th class="num">Total ML</th></tr></thead>
-            <tbody></tbody>
-        </table>
+        <div class="section-header"><h3>Ventas por Rodado</h3><div class="line"></div></div>
+        <div class="table-container" style="margin-bottom: 40px;">
+            <table id="tablaRodados">
+                <thead><tr><th>Rodado</th><th class="num">Unidades</th><th class="num">Total ML</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="section-header"><h3>Ranking Completo de Marcas</h3><div class="line"></div></div>
+        <div class="table-container">
+            <table id="tablaMarcasFull">
+                <thead><tr><th>Marca</th><th class="num">Unidades</th><th class="num">Total Facturado</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -118,10 +143,10 @@
         });
     }
 
-    function parse(v) { if(!v) return 0; let s = String(v).replace(/[$\s]/g, '').replace(/,/g, ''); return parseFloat(s) || 0; }
+    function parseNum(v) { if(!v) return 0; return parseFloat(String(v).replace(/[$\s]/g, '').replace(/,/g, '')) || 0; }
     
-    // Función de limpieza mejorada para el buscador
-    function clean(txt) {
+    // El "Limpiador" Mágico: saca todo lo que no sea letra o número
+    function superClean(txt) {
         return String(txt).toLowerCase().replace(/[^a-z0-9]/gi, '');
     }
 
@@ -134,29 +159,27 @@
 
     function update() {
         const mes = document.getElementById('mesSelector').value;
-        const queryRaw = document.getElementById('searchInput').value.toLowerCase();
-        const queryClean = clean(queryRaw);
+        const qRaw = document.getElementById('searchInput').value.toLowerCase();
+        const qClean = superClean(qRaw);
         
         let kpi = { f: 0, c: 0, fn: 0, s: 0 };
         let mData = {}, rData = {};
 
         rawData.forEach(row => {
-            const vRow = String(row[0]).trim();
-            const mRow = String(row[14]).trim();
-            
-            if (vRow === "88" && mRow === mes) {
-                const marca = String(row[16] || "").toLowerCase();
+            if (String(row[0]).trim() === "88" && String(row[14]).trim() === mes) {
+                const marca = String(row[16] || "SIN MARCA").trim();
                 const rodado = String(row[11]).trim();
-                const medida = String(row[13] || "").toLowerCase();
-                const desc = String(row[9] || "").toLowerCase();
+                const medida = String(row[13] || "").trim();
+                const desc = String(row[9] || "").trim();
                 
-                // Busca coincidencia en el texto real O en el texto limpio
-                const matchOriginal = (marca + rodado + medida + desc).includes(queryRaw);
-                const matchClean = clean(marca + rodado + medida + desc).includes(queryClean);
+                // Texto completo original y limpio
+                const fullOriginal = (marca + rodado + medida + desc).toLowerCase();
+                const fullClean = superClean(marca + rodado + medida + desc);
 
-                if (matchOriginal || matchClean) {
-                    const imp = parse(row[6]);
-                    const can = parse(row[5]);
+                // El buscador ahora es infalible: busca en el original O en el limpio
+                if (fullOriginal.includes(qRaw) || fullClean.includes(qClean)) {
+                    const imp = parseNum(row[6]);
+                    const can = parseNum(row[5]);
                     const isServ = String(row[10]).trim() === "A_SERVICIO";
 
                     kpi.f += imp;
@@ -167,29 +190,37 @@
                         rData[rodado].c += can; rData[rodado].f += imp;
                     }
                     if (isServ) kpi.s += imp;
-                    if (!mData[marca.toUpperCase()]) mData[marca.toUpperCase()] = { c: 0, f: 0 };
-                    mData[marca.toUpperCase()].c += can; mData[marca.toUpperCase()].f += imp;
+                    if (!mData[marca]) mData[marca] = { c: 0, f: 0 };
+                    mData[marca].c += can; mData[marca].f += imp;
                 }
             }
         });
 
         const fmt = (n) => '$ ' + Math.floor(n).toLocaleString('es-AR');
         
+        // Carga de KPIs
         document.getElementById('kpiFact').innerText = fmt(kpi.f);
         document.getElementById('kpiCant').innerText = kpi.c.toLocaleString('es-AR') + ' u.';
         document.getElementById('kpiFactNeu').innerText = fmt(kpi.fn);
         document.getElementById('kpiProm').innerText = kpi.c > 0 ? fmt(kpi.fn / kpi.c) : '$ 0';
         document.getElementById('kpiServ').innerText = fmt(kpi.s);
 
-        const topMarcas = Object.entries(mData).sort((a,b) => b[1].f - a[1].f).slice(0, 8);
-        document.querySelector('#tablaMarcasHome tbody').innerHTML = topMarcas.map(([m, v]) => {
-            const perc = kpi.f > 0 ? (v.f / kpi.f * 100).toFixed(1) : 0;
-            return `<tr><td>${m}</td><td class="num">${perc}%</td><td class="num">${fmt(v.f)}</td></tr>`;
+        // Tabla Home (Top 10)
+        const sortedMarcas = Object.entries(mData).sort((a,b) => b[1].f - a[1].f);
+        document.querySelector('#tablaMarcasHome tbody').innerHTML = sortedMarcas.slice(0, 10).map(([m, v]) => {
+            const share = kpi.f > 0 ? (v.f / kpi.f * 100).toFixed(1) : 0;
+            return `<tr><td>${m}</td><td class="num">${share}%</td><td class="num">${fmt(v.f)}</td></tr>`;
         }).join('');
 
+        // Tabla Full Marcas
+        document.querySelector('#tablaMarcasFull tbody').innerHTML = sortedMarcas.map(([m, v]) => 
+            `<tr><td>${m}</td><td class="num">${v.c} u.</td><td class="num">${fmt(v.f)}</td></tr>`
+        ).join('');
+
+        // Tabla Rodados
         document.querySelector('#tablaRodados tbody').innerHTML = Object.entries(rData)
             .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
-            .map(([r, v]) => `<tr><td><span class="tag-rodado">R${r}</span></td><td class="num">${v.c}</td><td class="num">${fmt(v.f)}</td></tr>`).join('');
+            .map(([r, v]) => `<tr><td><span class="tag">R${r}</span></td><td class="num">${v.c} u.</td><td class="num">${fmt(v.f)}</td></tr>`).join('');
     }
     init();
 </script>
