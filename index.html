@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Tema Noche (Default) */
             --bg: #0a0a0a; --surface: #141414; --border: #262626; 
             --text: #f0f0f0; --muted: #a0a0a0; --accent: #6366f1;
             --row-hover: rgba(255, 255, 255, 0.03);
@@ -30,10 +29,8 @@
         
         input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px; font-size: 13px; outline: none; }
 
-        /* Botón Modo */
         .theme-toggle { margin-left: auto; background: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12px; }
 
-        /* Dropdown Multi-Select */
         .multiselect { position: relative; width: 220px; }
         .selectBox { position: relative; cursor: pointer; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 13px; min-height: 18px; }
         #checkboxes { 
@@ -44,7 +41,6 @@
         #checkboxes label { display: flex; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; }
         #checkboxes label:hover { background: var(--row-hover); }
 
-        /* Tabs */
         .tabs { display: flex; justify-content: center; gap: 25px; margin: 25px 0; border-bottom: 1px solid var(--border); }
         .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 20px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; }
         .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -59,17 +55,16 @@
         .value { font-size: 1.8rem; font-weight: 800; color: var(--text); }
         .sub-value { color: var(--accent); font-size: 0.9rem; margin-top: 8px; font-weight: 600; }
 
-        /* Tabla y Desplegables */
         .table-container { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 40px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 15px 20px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); }
         td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-size: 14px; }
         
-        /* Acordeón de Rodados */
         .rodado-header { cursor: pointer; transition: background 0.2s; }
         .rodado-header:hover { background: var(--row-hover); }
         .detalle-desc { display: none; background: rgba(128, 128, 128, 0.05); }
-        .detalle-desc td { padding: 10px 40px; font-size: 12px; color: var(--muted); border-bottom: 1px dashed var(--border); }
+        .detalle-desc td { padding: 12px 30px; font-size: 12px; border-bottom: 1px solid var(--border); }
+        .desc-text { color: var(--muted); font-weight: 500; }
         
         .num { text-align: right; font-weight: 700; }
         .tag { background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
@@ -133,7 +128,7 @@
     <div id="detallado" class="page">
         <div class="table-container">
             <table id="tablaRodados">
-                <thead><tr><th>Rodado (Click para ver detalles)</th><th class="num">Unidades</th><th class="num">Total Facturado</th></tr></thead>
+                <thead><tr><th>Rodado (Click para ver detalle)</th><th class="num">Unidades</th><th class="num">Importe ML</th></tr></thead>
                 <tbody id="rodadosBody"></tbody>
             </table>
         </div>
@@ -145,16 +140,12 @@
     let rawData = [];
     let expanded = false;
 
-    function toggleTheme() {
-        document.body.classList.toggle('light-mode');
-    }
-
+    function toggleTheme() { document.body.classList.toggle('light-mode'); }
     function toggleCheckboxes() {
         const checkboxes = document.getElementById("checkboxes");
         checkboxes.style.display = expanded ? "none" : "block";
         expanded = !expanded;
     }
-
     function toggleRow(id) {
         const rows = document.querySelectorAll(`.desc-${id}`);
         rows.forEach(r => r.style.display = r.style.display === 'table-row' ? 'none' : 'table-row');
@@ -232,9 +223,10 @@
                 rData[rodado].c += can;
                 rData[rodado].f += imp;
                 
-                // Agrupar descripciones por rodado
                 const dKey = String(row[9] || "Sin descripción").toUpperCase();
-                rData[rodado].details[dKey] = (rData[rodado].details[dKey] || 0) + can;
+                if (!rData[rodado].details[dKey]) rData[rodado].details[dKey] = { c: 0, f: 0 };
+                rData[rodado].details[dKey].c += can;
+                rData[rodado].details[dKey].f += imp;
             }
             if (esServicio) kpi.s += imp;
 
@@ -256,17 +248,21 @@
             <tr><td>${m}</td><td class="num">${kpi.f > 0 ? (v.f/kpi.f*100).toFixed(1) : 0}%</td><td class="num">${fmt(v.f)}</td></tr>
         `).join('');
 
-        // Renderizado de Rodados con Acordeón
         const rodadosHtml = Object.entries(rData)
             .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
             .map(([r, v], idx) => {
                 const detailRows = Object.entries(v.details)
-                    .map(([d, c]) => `<tr class="detalle-desc desc-${idx}"><td colspan="2">${d}</td><td class="num">${fmtNum(c)} u.</td></tr>`)
-                    .join('');
+                    .sort((a,b) => b[1].f - a[1].f) // Ordenar por importe las descripciones
+                    .map(([d, val]) => `
+                        <tr class="detalle-desc desc-${idx}">
+                            <td class="desc-text">${d}</td>
+                            <td class="num">${fmtNum(val.c)} u.</td>
+                            <td class="num">${fmt(val.f)}</td>
+                        </tr>`).join('');
 
                 return `
                     <tr class="rodado-header" onclick="toggleRow(${idx})">
-                        <td><span class="tag">R${r}</span> ▾</td>
+                        <td><span class="tag">R${r}</span> <small>▾</small></td>
                         <td class="num">${fmtNum(v.c)} u.</td>
                         <td class="num">${fmt(v.f)}</td>
                     </tr>
